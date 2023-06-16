@@ -213,7 +213,12 @@ def install_crds(name, directory):
 
     if len(files) != 0:
         local_resource(name+'-install', cmd='kubectl apply -f %s' % " -f ".join(files), deps=files)  # we can wait/depend on this, but it won't cause a proper uninstall
-        k8s_yaml(files)  # this will cause a proper uninstall, but we can't wait/depend on it
+        
+        # The allow_duplicates API is only available in 0.17.1+
+        if allow_duplicates and _version_tuple() >= [0, 17, 1]:
+            k8s_yaml(files, allow_duplicates=allow_duplicates)
+        else:
+            k8s_yaml(files)
 
         # TODO: Figure out how to avoid another named resource showing up in the tilt HUD for this waiter
         local_resource(name+'-ready', resource_deps=[name+'-install'], cmd='kubectl wait --for=condition=Established crd --all')  # now we can wait for those crds to finish establishing
